@@ -23,6 +23,7 @@ MMode = 0
 # 5 - drag and draw a line
 # 6 - drag and draw h line
 # 7 - drag and draw v line
+# 8 - free line and angle
 
 SCALE = 1
 DELTA = 0
@@ -131,6 +132,8 @@ class MainGUI:
         self.dhlineBtn.pack(fill=X, side=TOP)
         self.dvlineBtn = Button(self.ctrlPanel, text='V line', command=self.d_vline)
         self.dvlineBtn.pack(fill=X, side=TOP)
+        self.falineBtn = Button(self.ctrlPanel, text='Draw a line and find angle', command=self.fa_line)
+        self.falineBtn.pack(fill=X, side=TOP)
 
         # Image Editing Region
         self.canvas = Canvas(self.frame, width=1024, height=768)
@@ -282,6 +285,10 @@ class MainGUI:
         global MMode
         MMode = 7
         
+    def fa_line(self, event = None):
+        global MMode
+        MMode = 8
+        
     def style0(self, event = None):
         global style
         style = 0
@@ -396,6 +403,9 @@ class MainGUI:
         if MMode == 3:
             self.vdline(event)
             #v line
+        if MMode == 8:
+            self.faline(event)
+            #free line for angle
     
     def rect(self, event):
         #self.mouse_move(event)
@@ -451,6 +461,20 @@ class MainGUI:
             self.currBboxColor = config.COLORS[len(self.bboxList) % len(config.COLORS)]
             self.bboxId = self.canvas.create_line(self.STATE['x'], self.STATE['y'], event.x, event.y, width=2, fill=self.currBboxColor)
 
+    def faline(self, event):
+        if self.bboxId:
+            self.currBboxColor = self.canvas.itemcget(self.bboxId, "fill")
+            self.canvas.delete(self.bboxId)
+            self.canvas.delete(self.o1)
+            self.canvas.delete(self.o2)
+            self.canvas.delete(self.o3)
+            self.canvas.delete(self.o4)
+        if self.EDIT:
+            self.bboxId = self.canvas.create_line(self.STATE['x'], self.STATE['y'], event.x, event.y, fill=self.currBboxColor)
+        else:
+            self.currBboxColor = config.COLORS[len(self.bboxList) % len(config.COLORS)]
+            self.bboxId = self.canvas.create_line(self.STATE['x'], self.STATE['y'], event.x, event.y, width=2, fill=self.currBboxColor)
+            
     def hline(self, event):
         if self.bboxId:
             self.currBboxColor = self.canvas.itemcget(self.bboxId, "fill")
@@ -607,6 +631,28 @@ class MainGUI:
             dist = xd*xd + yd*yd
             dist= np.sqrt(dist)
             self.objectListBox.insert(END, 'Line (%d, %d)->(%d, %d)' % (x1, y1, x2, y2) + ': %d ' % (dist) + scaleUnit )
+            #self.objectListBox.itemconfig(len(self.bboxIdList) - 1,
+                                      #fg=self.currBboxColor)
+            self.currLabel = None
+            self.dlineList.append((x1, y1, x2, y2))
+            if style == 1:
+                self.bboxId = self.canvas.create_text((x1+x2)/2, (y1+y2)/2,fill="darkblue",font="Arial 16 bold",
+                        text= '%d ' % (dist) + scaleUnit)
+                self.dlineIdList.append(self.bboxId)
+                canvas.pack(fill=BOTH, expand=1)
+            if style == 2:
+                self.create_MeText(event=None, x1=x1,x2=x2,y1=y1,y2=y2, dis=dist, su=scaleUnit)
+        if MMode == 8:
+            #free line angle mode
+            #o1 = self.canvas.create_oval(x1 - 2, y1 - 2, x1 + 2, y1 + 2, fill="red")
+            #o2 = self.canvas.create_oval(x2 - 2, y2 - 2, x2 + 2, y2 + 2, fill="red")
+            self.dlineIdList.append(self.bboxId)
+            self.bboxId = None
+            self.objectLabelList.append(str(self.currLabel))
+            xd = abs(x1-x2)
+            yd = abs(y1-y2)
+            angle = math.atan2(yd,xd)*180/math.pi
+            self.objectListBox.insert(END, 'Line (%d,%d)->(%d,%d)' % (x1, y1, x2, y2) + 'angle %.1f ' % (angle) + 'or %.1f ' % (90-angle) )
             #self.objectListBox.itemconfig(len(self.bboxIdList) - 1,
                                       #fg=self.currBboxColor)
             self.currLabel = None
